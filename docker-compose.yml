@@ -1,0 +1,14 @@
+services:
+  coordinator:
+    container_name: coordinator
+    build: .
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - coffee_net
+    restart: unless-stopped
+
+networks:
+  coffee_net:
+    external: true
+    name: connection-node_coffee_net
