@@ -29,35 +29,8 @@ func main() {
 	// Initialize health checker
 	healthChecker := monitor.NewHealthChecker()
 
-	// Define targets to monitor
-	// Add all your containers here that need health monitoring
-	targets := []monitor.CheckTarget{
-		{
-			Name:          "Connection Node",
-			Host:          "connection-node",
-			Port:          healthPort,
-			ContainerName: "connection-node",
-		},
-		{
-			Name:          "Filter Year 1",
-			Host:          "filter-node-year-1",
-			Port:          healthPort,
-			ContainerName: "filter-node-year-1",
-		},
-		{
-			Name:          "Filter Year 2",
-			Host:          "filter-node-year-2",
-			Port:          healthPort,
-			ContainerName: "filter-node-year-2",
-		},
-		{
-			Name:          "Joiner Q2",
-			Host:          "joiner-node-q2-1",
-			Port:          healthPort,
-			ContainerName: "joiner-node-q2-1",
-		},
-		// Add more nodes as needed from your docker-compose
-	}
+	// Get all monitored nodes dynamically
+	targets := getMonitoredNodes()
 
 	log.Printf("Monitoring %d targets with interval: %v", len(targets), checkInterval)
 	for _, target := range targets {
@@ -83,7 +56,7 @@ func main() {
 				if !healthChecker.IsAlive(target.Host, target.Port) {
 					log.Printf("ERROR: %s is not responding to health checks", target.Name)
 					log.Printf("Attempting to restart container: %s", target.ContainerName)
-					
+
 					if err := dockerClient.RestartContainer(target.ContainerName); err != nil {
 						log.Printf("ERROR: Failed to restart container %s: %v", target.ContainerName, err)
 					} else {
@@ -100,4 +73,3 @@ func main() {
 		}
 	}
 }
-
