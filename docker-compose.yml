@@ -1,7 +1,34 @@
 services:
-  coordinator:
-    container_name: coordinator
+  coordinator-1:
+    container_name: coordinator-1
     build: .
+    environment:
+      - MY_ID=1
+      - TOTAL_REPLICAS=3
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - coffee_net
+    restart: unless-stopped
+
+  coordinator-2:
+    container_name: coordinator-2
+    build: .
+    environment:
+      - MY_ID=2
+      - TOTAL_REPLICAS=3
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - coffee_net
+    restart: unless-stopped
+
+  coordinator-3:
+    container_name: coordinator-3
+    build: .
+    environment:
+      - MY_ID=3
+      - TOTAL_REPLICAS=3
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
