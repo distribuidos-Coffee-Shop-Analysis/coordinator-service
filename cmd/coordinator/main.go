@@ -4,10 +4,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/distribuidos-Coffee-Shop-Analysis/coordinator-service/internal/docker"
+	"github.com/distribuidos-Coffee-Shop-Analysis/coordinator-service/internal/election"
 	"github.com/distribuidos-Coffee-Shop-Analysis/coordinator-service/internal/monitor"
 )
 
@@ -18,6 +20,21 @@ const (
 
 func main() {
 	log.Println("Starting Coordinator Service...")
+
+	// Read environment variables for election
+	myID, err := strconv.Atoi(getEnv("MY_ID", "1"))
+	if err != nil {
+		log.Fatalf("Invalid MY_ID: %v", err)
+	}
+
+	totalReplicas, err := strconv.Atoi(getEnv("TOTAL_REPLICAS", "3"))
+	if err != nil {
+		log.Fatalf("Invalid TOTAL_REPLICAS: %v", err)
+	}
+
+	// Initialize Bully election with heartbeats
+	elector := election.NewCoordinator(myID, totalReplicas)
+	elector.Start()
 
 	// Initialize Docker client
 	dockerClient, err := docker.NewClient()
@@ -32,10 +49,8 @@ func main() {
 	// Get all monitored nodes dynamically
 	targets := getMonitoredNodes()
 
-	log.Printf("Monitoring %d targets with interval: %v", len(targets), checkInterval)
-	for _, target := range targets {
-		log.Printf("  - %s", target.String())
-	}
+	log.Printf("Configured to monitor %d targets with interval: %v", len(targets), checkInterval)
+	log.Printf("Waiting for leader election...")
 
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -45,12 +60,17 @@ func main() {
 	ticker := time.NewTicker(checkInterval)
 	defer ticker.Stop()
 
-	log.Println("Health monitoring started")
-
 	// Main monitoring loop
 	for {
 		select {
 		case <-ticker.C:
+			if !elector.IsLeader() {
+				log.Printf("Not leader (Leader ID=%d), skipping health checks", elector.GetLeaderID())
+				continue
+			}
+
+			log.Printf("I am the leader, performing health checks...")
+
 			// Check health of all targets
 			for _, target := range targets {
 				if !healthChecker.IsAlive(target.Host, target.Port) {
@@ -67,9 +87,25 @@ func main() {
 				}
 			}
 
+		case isLeader := <-elector.LeaderChan():
+			if isLeader {
+				log.Printf("*** BECAME LEADER - Starting active monitoring ***")
+			} else {
+				log.Printf("*** LOST LEADERSHIP - Entering standby mode ***")
+			}
+
 		case sig := <-sigChan:
 			log.Printf("Received signal %v, shutting down...", sig)
 			return
 		}
 	}
+}
+
+// getEnv gets an environment variable with a default value
+func getEnv(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }
