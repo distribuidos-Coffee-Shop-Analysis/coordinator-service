@@ -7,8 +7,31 @@ import (
 )
 
 // getMonitoredNodes generates the complete list of nodes to monitor dynamically
-func getMonitoredNodes() []monitor.CheckTarget {
+// Includes workers AND other coordinators (excluding self)
+func getMonitoredNodes(myID, totalReplicas int) []monitor.CheckTarget {
 	targets := []monitor.CheckTarget{}
+
+	// ========================================
+	// COORDINATORS (Cross-Monitoring)
+	// ========================================
+	for i := 1; i <= totalReplicas; i++ {
+		// CRITICAL: Never monitor myself
+		if i == myID {
+			continue
+		}
+
+		containerName := fmt.Sprintf("coordinator-%d", i)
+		targets = append(targets, monitor.CheckTarget{
+			Name:          fmt.Sprintf("Coordinator %d", i),
+			Host:          containerName,
+			Port:          healthPort,
+			ContainerName: containerName,
+		})
+	}
+
+	// ========================================
+	// WORKERS
+	// ========================================
 
 	// Connection Node
 	targets = append(targets, monitor.CheckTarget{

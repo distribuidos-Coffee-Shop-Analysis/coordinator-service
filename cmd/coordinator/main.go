@@ -1,7 +1,9 @@
 package main
 
 import (
+	"io"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"strconv"
@@ -32,6 +34,9 @@ func main() {
 		log.Fatalf("Invalid TOTAL_REPLICAS: %v", err)
 	}
 
+	// Start health server for cross-monitoring
+	go startHealthServer(healthPort)
+
 	// Initialize Bully election with heartbeats
 	elector := election.NewCoordinator(myID, totalReplicas)
 	elector.Start()
@@ -46,8 +51,8 @@ func main() {
 	// Initialize health checker
 	healthChecker := monitor.NewHealthChecker()
 
-	// Get all monitored nodes dynamically
-	targets := getMonitoredNodes()
+	// Get all monitored nodes dynamically (workers + other coordinators)
+	targets := getMonitoredNodes(myID, totalReplicas)
 
 	log.Printf("Configured to monitor %d targets with interval: %v", len(targets), checkInterval)
 	log.Printf("Waiting for leader election...")
@@ -108,4 +113,50 @@ func getEnv(key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+// startHealthServer starts a TCP health check server
+func startHealthServer(port string) {
+	address := "0.0.0.0:" + port
+
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatalf("Failed to start health server: %v", err)
+	}
+	defer listener.Close()
+
+	log.Printf("Health server listening on port %s", port)
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Printf("Error accepting health connection: %v", err)
+			continue
+		}
+
+		go handleHealthCheck(conn)
+	}
+}
+
+// handleHealthCheck handles a single health check connection
+func handleHealthCheck(conn net.Conn) {
+	defer conn.Close()
+
+	buffer := make([]byte, 4)
+	n, err := conn.Read(buffer)
+	if err != nil {
+		if err != io.EOF {
+			log.Printf("Error reading health check: %v", err)
+		}
+		return
+	}
+
+	message := string(buffer[:n])
+
+	if message == "PING" {
+		_, err = conn.Write([]byte("PONG"))
+		if err != nil {
+			log.Printf("Error writing health response: %v", err)
+		}
+	}
 }
