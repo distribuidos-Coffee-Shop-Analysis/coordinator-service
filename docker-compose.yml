@@ -5,8 +5,10 @@ services:
     environment:
       - MY_ID=1
       - TOTAL_REPLICAS=3
+      - COMPOSE_PATH=/app/nodes-compose.yml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /Users/inakillorens/Desktop/fiuba/DISTRIBUIDOS/nodes/docker-compose.yml:/app/nodes-compose.yml:ro
     networks:
       - coffee_net
     restart: unless-stopped
@@ -17,8 +19,10 @@ services:
     environment:
       - MY_ID=2
       - TOTAL_REPLICAS=3
+      - COMPOSE_PATH=/app/nodes-compose.yml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /Users/inakillorens/Desktop/fiuba/DISTRIBUIDOS/nodes/docker-compose.yml:/app/nodes-compose.yml:ro
     networks:
       - coffee_net
     restart: unless-stopped
@@ -29,8 +33,10 @@ services:
     environment:
       - MY_ID=3
       - TOTAL_REPLICAS=3
+      - COMPOSE_PATH=/app/nodes-compose.yml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /Users/inakillorens/Desktop/fiuba/DISTRIBUIDOS/nodes/docker-compose.yml:/app/nodes-compose.yml:ro
     networks:
       - coffee_net
     restart: unless-stopped
