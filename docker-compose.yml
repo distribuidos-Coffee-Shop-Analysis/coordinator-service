@@ -1,0 +1,47 @@
+services:
+  coordinator-1:
+    container_name: coordinator-1
+    build: .
+    environment:
+      - MY_ID=1
+      - TOTAL_REPLICAS=3
+      - COMPOSE_PATH=/app/nodes-compose.yml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /Users/inakillorens/Desktop/fiuba/DISTRIBUIDOS/nodes/docker-compose.yml:/app/nodes-compose.yml:ro
+    networks:
+      - coffee_net
+    restart: unless-stopped
+
+  coordinator-2:
+    container_name: coordinator-2
+    build: .
+    environment:
+      - MY_ID=2
+      - TOTAL_REPLICAS=3
+      - COMPOSE_PATH=/app/nodes-compose.yml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /Users/inakillorens/Desktop/fiuba/DISTRIBUIDOS/nodes/docker-compose.yml:/app/nodes-compose.yml:ro
+    networks:
+      - coffee_net
+    restart: unless-stopped
+
+  coordinator-3:
+    container_name: coordinator-3
+    build: .
+    environment:
+      - MY_ID=3
+      - TOTAL_REPLICAS=3
+      - COMPOSE_PATH=/app/nodes-compose.yml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /Users/inakillorens/Desktop/fiuba/DISTRIBUIDOS/nodes/docker-compose.yml:/app/nodes-compose.yml:ro
+    networks:
+      - coffee_net
+    restart: unless-stopped
+
+networks:
+  coffee_net:
+    external: true
+    name: connection-node_coffee_net
